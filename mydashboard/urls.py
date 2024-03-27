@@ -48,5 +48,29 @@ urlpatterns = [
     path("delete_case_client/<int:pk>/", views.delete_case, name="delete_case_client"),
     path("single_case_client/<int:pk>/", views.single_case_client, name="single_case_client"),
 
+      # INVOICE
+    path('invoices/', views.view_invoice, name='invoices'),
+    path('invoices/create',views.createInvoice, name='create-invoice'),
+    path('invoices/create-build/<slug:slug>',views.createBuildInvoice, name='create-build-invoice'),
+    path('invoices/update-build/<slug:slug>',views.updateBuildInvoice, name='update-build-invoice'),
+    # path('pdf/<int:pk>', views.generate_pdf_invoice, name="generate-pdf"),
+    path('sending_email/<int:pk>', views.sending_email, name="sending_email"),
+    path('invoices/pdf-build/<int:pk>',views.generate_pdf_invoice, name='generate_pdf_invoice'),
+
+    #Delete an invoice
+    path('invoices/create-build/deleteProfS/<slug:slug>/', views.deleteProfService, name='delete_prof'),
+    path('invoices/create-build/deleteReimburS/<slug:slug>/', views.deleteReimburService, name='delete_reimbur'),
+    path('invoices/delete/<slug:slug>',views.deleteInvoice, name='delete-invoice'),
+
+    path('pdf_invoice/<int:pk>/', views.PDFInvoiceView, name='pdf_invoice'),
+
+
+
+    # Account
+    path('accounts/', views.view_accounts, name='accounts'),
+    path('accounts/edit_account_transaction/<slug:slug>',views.edit_account_transaction, name='edit_account_transaction'),
+
+     path('balance_sheet/', views.balance_sheet, name='balance_sheet'),
+
      
 ]

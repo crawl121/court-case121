@@ -83,8 +83,7 @@ class AddClientForm(forms.ModelForm):
             "agent_ph",
             "agent_identity",
             "remark",
-            "latitude",
-            "longitude"
+            "created_by",
         )
 
 

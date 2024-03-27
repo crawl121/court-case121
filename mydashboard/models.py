@@ -28,8 +28,8 @@ class ClientRecord(models.Model):
     agent_ph = models.CharField(max_length=50, blank=True)
     agent_identity = models.CharField(max_length=50, blank=True)
 
-    latitude = models.FloatField(blank=True)
-    longitude = models.FloatField(blank=True)
+    # latitude = models.FloatField(blank=True)
+    # longitude = models.FloatField(blank=True)
 
 
 
@@ -125,6 +125,8 @@ class Case(models.Model):
     case_description = models.TextField(blank=True)
     sense_of_urgent = models.CharField(max_length=20)
 
+    created_by = models.ForeignKey(User, blank=True, on_delete=models.CASCADE, null=True)
+
     # Court is Optional
     court_no = models.CharField(max_length=40, blank=True)
     court_type = models.ForeignKey(CourtType, on_delete=models.CASCADE, null=True, blank=True)
@@ -157,6 +159,7 @@ class Case(models.Model):
 class Invoice(models.Model):
     # case = models.OneToOneField(Case, on_delete=models.CASCADE)
     # save_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, blank=True, on_delete=models.CASCADE, null=True)
     invoice_date_time = models.DateField(auto_now_add=True, null=True, blank=True)
     final_total = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     final_total_transaction = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

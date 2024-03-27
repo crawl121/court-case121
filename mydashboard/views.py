@@ -9,6 +9,9 @@ from django.contrib.auth.models import User
 from collections import Counter
 import json
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 def login_user(request):
@@ -59,9 +62,10 @@ def register_user(request):
 
 @login_required()
 def dashboard(request):
-    case_information = Case.objects.all()
-    client_information = ClientRecord.objects.all()
-    invoice_information = Invoice.objects.all()
+    user = request.user
+    case_information = Case.objects.filter(created_by=user)
+    client_information = ClientRecord.objects.filter(created_by=user)
+    invoice_information = Invoice.objects.filter(created_by=user)
    
     quantity_case = len([x for x,y in enumerate(case_information)])
     quantity_client = len([x for x,y in enumerate(client_information)])
@@ -343,19 +347,9 @@ def add_client_to_db(request):
         if request.method == "POST":
             form = AddClientForm(request.POST)
             if form.is_valid():
-                city = form.cleaned_data["city"]
-                postcode = form.cleaned_data["postcode"]
-                state = form.cleaned_data["state"]
-                location = f"{city}, {postcode}, {state}"
-                # geolocator = Nominatim(user_agent="myGeocoder")
-                # location_info = geolocator.geocode(location)
-                # Check if location_info is available
-                # if location_info: 
-                #     # Bind the form to a new instance of the ClientRecord model
-                #     client_record = form.save(commit=False)
-                #     client_record.latitude = location_info.latitude
-                #     client_record.longitude = location_info.longitude
-                #     client_record.save()
+                client_record = form.save(commit=False)
+                client_record.created_by = request.user
+                client_record.save()
 
                 messages.success(request, "Client record added successfully.")
                 return redirect("view_all_client")
@@ -370,7 +364,8 @@ def add_client_to_db(request):
 
 
 def view_all_client(request):
-    record = ClientRecord.objects.all()
+    user = request.user
+    record = ClientRecord.objects.filter(created_by=user)
     print(record)
     if request.user.is_authenticated:
         return render(
@@ -393,22 +388,8 @@ def update_client(request, pk):
         # print(form)
         # print(form)
         if form.is_valid():
-            city = form.cleaned_data["city"]
-            postcode = form.cleaned_data["postcode"]
-            state = form.cleaned_data["state"]
-            location = f"{city}, {postcode}, {state}"
-            # geolocator = Nominatim(user_agent="myGeocoder")
-            # location_info = geolocator.geocode(location)
-            # print("Location Information: ", location_info )
-            # print("Latitude : ",location_info.latitude)
-            # print("Longtitude : ",location_info.longitude)
-            # Check if location_info is available
-            # if location_info: 
-            #     # Bind the form to a new instance of the ClientRecord model
-            #     client_record = form.save(commit=False)
-            #     client_record.latitude = location_info.latitude
-            #     client_record.longitude = location_info.longitude
-            #     client_record.save()
+            client_record = form.save(commit=False)
+            client_record.save()
            
             messages.success(request, "Record Has Been Updated!")
             return redirect("view_all_client")
@@ -442,14 +423,16 @@ def single_client(request, pk):
 ###   CREATE CASE --###
 ###-----------------###
 def list_case(request, ):
-    record = Case.objects.all()
+    user = request.user
+    record = Case.objects.filter(created_by=user)
     return render(request, "main/case/list_case.html", { "records": record})
 
 
 def create_case_view(request ):
     courtInfo = CourtType.objects.all()
     caseInfo = ClientRole.objects.all()
-    record = ClientRecord.objects.all()
+    user = request.user
+    record = ClientRecord.objects.filter(created_by=user)
     return render(
         request, "main/case/create_case.html", { 
                                                 "records": record,
@@ -462,7 +445,9 @@ def create_case_detail(request):
         if request.method =="POST":
             case_form = CaseForm(request.POST)
             if case_form.is_valid() :
-                case = case_form.save()
+                case_record = case_form.save(commit=False)
+                case_record.created_by = request.user
+                case_record.save()
                 return redirect("list_case")
             else:
                 messages.error(request,case_form.errors)
@@ -516,3 +501,365 @@ def single_case_client(request, pk):
         current_record = Case.objects.get(id=pk)
         return redirect("list_case", {
                                       "record": current_record})
+    
+def view_invoice(request):
+    context = {}
+    user = request.user
+    invoices = Invoice.objects.filter(created_by=user)
+    reimburService = ReimburService.objects.all()
+    for brand in Invoice.objects.all():
+        if brand.case == None:
+            invoice_to_delete = Invoice.objects.get(pk = brand.pk)
+            invoice_to_delete.delete()
+
+    context['invoices'] = invoices
+    return render(request,"main/invoice/invoice_list.html", context)
+
+from django.urls import reverse
+
+
+
+@login_required
+def createInvoice(request):
+    #create a blank invoice ....
+    number = 'INV-'+str(uuid4()).split('-')[1]
+    newInvoice = Invoice.objects.create(number=number)
+    newInvoice.created_by = request.user
+    newInvoice.save()
+
+    inv = Invoice.objects.get(number=number)
+    return redirect('create-build-invoice', slug=inv.slug)
+
+
+def createBuildInvoice(request, slug):
+    #fetch that invoice
+    try:
+        invoice = Invoice.objects.get(slug=slug)
+        pass
+    except:
+        messages.error(request, 'Something went wrong')
+        return redirect('invoices')
+
+    #fetch all the products - related to this invoice
+    profService = ProfService.objects.filter(invoice=invoice)
+    reimburService = ReimburService.objects.filter(invoice=invoice)
+
+
+    context = {}
+    context['invoice'] = invoice
+    context['profService'] = profService
+    context['reimburService'] = reimburService
+    reimburdance_price = 0.0
+    prof_price = 0.0
+    for i in reimburService:
+        reimburdance_price += float(i.reimbur_service_price)
+    
+    for i in profService:
+        prof_price += float(i.prof_service_price)
+    invoice.total_reimbur_service_price = reimburdance_price
+    invoice.total_prof_service_price = prof_price
+    invoice.final_total = reimburdance_price + prof_price
+    invoice.final_total_transaction = reimburdance_price + prof_price
+    invoice.save()
+
+    if request.method == 'GET':
+        prod_form  = ProfServiceForm()
+        prod_form2  = ReimburServiceForm()
+        inv_form = InvoiceForm(instance=invoice)
+        context['prod_form'] = prod_form
+        context['prod_form2'] = prod_form2
+        context['inv_form'] = inv_form
+
+
+
+        return render(request, 'main/invoice/create_invoice.html', context)
+
+    if request.method == 'POST':
+        prod_form  = ProfServiceForm(request.POST)
+        prod_form2  = ReimburServiceForm(request.POST)
+        inv_form = InvoiceForm(request.POST, instance=invoice)
+        print("INV FORM : ", inv_form.is_valid())
+        if prod_form2.is_valid() and 'reimbur_service'in request.POST:
+            print(prod_form2.cleaned_data['reimbur_service_price'])
+            obj = prod_form2.save(commit=False)
+            obj.invoice = invoice
+            obj.save()
+            messages.success(request, "Reimburdance Service added succesfully")
+            return redirect('create-build-invoice', slug=slug)
+        elif prod_form.is_valid() and 'prof_service' in request.POST:
+            obj2 = prod_form.save(commit=False)
+            obj2.invoice = invoice
+            obj2.save()
+            messages.success(request, "Professional Service added succesfully")
+            return redirect('create-build-invoice', slug=slug)
+        elif inv_form.is_valid() and 'case' in request.POST:
+            inv_form.save()
+            messages.success(request, "Invoice updated succesfully")
+            return redirect('create-build-invoice', slug=slug)
+        else:
+            if inv_form.errors :
+                messages.error(request, inv_form.errors)
+            elif prod_form.errors:
+                messages.error(request, prod_form.errors)
+            elif prod_form2.errors:
+                messages.error(request, prod_form2.errors)
+            context['prod_form'] = prod_form
+            context['prod_form2'] = prod_form2
+            context['inv_form'] = inv_form
+            # context['case_form'] = case_form
+            return render(request, 'main/invoice/create_invoice.html', context)
+    return render(request, 'main/invoice/create_invoice.html', context)
+
+
+
+
+def updateBuildInvoice(request, slug):
+    try:
+        invoice = get_object_or_404(Invoice, slug=slug)
+    except Invoice.DoesNotExist:
+        messages.error(request, 'Invoice not found')
+        return redirect('invoices')
+    all_case = Case.objects.all()
+    profService = ProfService.objects.filter(invoice=invoice)
+    reimburService = ReimburService.objects.filter(invoice=invoice)
+    original_final_total_transaction = invoice.final_total_transaction
+    reimburdance_price = sum(float(i.reimbur_service_price) for i in reimburService)
+    prof_price = sum(float(i.prof_service_price) for i in profService)
+
+    invoice.total_reimbur_service_price = reimburdance_price
+    invoice.total_prof_service_price = prof_price
+    invoice.final_total = reimburdance_price + prof_price
+    
+    invoice.final_total_transaction = original_final_total_transaction
+    invoice.save()
+
+    if request.method == 'GET':
+        prod_form = ProfServiceForm()
+        prod_form2 = ReimburServiceForm()
+        inv_form = updateInvoiceForm(instance=invoice)
+
+        context = {
+            'invoice': invoice,
+            'profService': profService,
+            'reimburService': reimburService,
+            'prod_form': prod_form,
+            'prod_form2': prod_form2,
+            'inv_form': inv_form,
+            'all_case' : all_case
+        }
+
+        return render(request, 'main/invoice/update_invoice.html', context)
+
+    if request.method == 'POST':
+        if 'reimbur_service' in request.POST:
+            prod_form2 = ReimburServiceForm(request.POST)
+            if prod_form2.is_valid():
+                obj = prod_form2.save(commit=False)
+                obj.invoice = invoice
+                obj.save()
+                messages.success(request, "Reimbursement Service added successfully")
+            else:
+                messages.error(request, prod_form2.errors)
+        elif 'prof_service' in request.POST:
+            prod_form = ProfServiceForm(request.POST)
+            if prod_form.is_valid():
+                obj2 = prod_form.save(commit=False)
+                obj2.invoice = invoice
+                obj2.save()
+                messages.success(request, "Professional Service added successfully")
+            else:
+                messages.error(request, prod_form.errors)
+        elif 'case' in request.POST:
+            inv_form = updateInvoiceForm(request.POST, instance=invoice)
+            if inv_form.is_valid():
+                inv_form.save()
+                messages.success(request, "Invoice updated successfully")
+            else:
+                messages.error(request, inv_form.errors)
+
+        return redirect('update-build-invoice', slug=slug)
+
+    return render(request, 'main/invoice/update_invoice.html', context)
+
+
+
+
+from django.shortcuts import get_object_or_404, redirect
+
+from django.http import HttpResponseRedirect
+
+def deleteProfService(request, slug):
+    try:
+        prof_service = ProfService.objects.get(slug=slug)
+        # Get the 'next' parameter from the request
+        next_url = request.GET.get('next', 'create-build-invoice')
+        prof_service.delete()
+        messages.success(request, 'Professional Service deleted successfully.')
+    except ProfService.DoesNotExist:
+        messages.error(request, 'Professional Service not found.')
+        next_url = 'create-build-invoice'
+
+    return HttpResponseRedirect(next_url)
+
+def deleteReimburService(request, slug):
+    try:
+        reimbur_service = ReimburService.objects.get(slug=slug)
+        # Get the 'next' parameter from the request
+        next_url = request.GET.get('next', 'create-build-invoice')
+        reimbur_service.delete()
+        messages.success(request, 'Reimbursement Service deleted successfully.')
+    except ReimburService.DoesNotExist:
+        messages.error(request, 'Reimbursement Service not found.')
+        next_url = 'create-build-invoice'
+
+    return HttpResponseRedirect(next_url)
+
+
+
+def deleteInvoice(request, slug):
+    try:
+        Invoice.objects.get(slug=slug).delete()
+    except:
+        messages.error(request, 'Something went wrong')
+        return redirect('invoices')
+
+    return redirect('invoices')
+
+
+def PDFInvoiceView(request, pk):
+    obj = Invoice.objects.get(pk=pk)
+    articles = obj.reimburservice_set.all()
+    proservices = obj.profservice_set.all()
+    case = Case.objects.get(pk=obj.case_id)
+    clients = ClientRecord.objects.get(pk= case.clients_id)
+
+
+    context = {'obj' : obj,
+               'articles': articles,
+               'case' : case,
+               'clients' : clients,
+               'proservices' : proservices
+               }
+    return render(request,'main/invoice/pdf_view.html', context)
+
+#Creating a class based view
+
+def generate_pdf_invoice(request, pk):
+    print("SLUG:::: ",pk)
+    obj = Invoice.objects.get(pk=pk)
+    reimburservice = obj.reimburservice_set.all()
+    proservices = obj.profservice_set.all()
+    case = Case.objects.get(pk=obj.case_id)
+    clients = ClientRecord.objects.get(pk= case.clients_id)
+    context = {'obj' : obj,
+               'articles': reimburservice,
+               'case' : case,
+               'clients' : clients,
+               'proservices' : proservices
+               }
+    file_name = clients.full_name
+    create_pdf_n_save_it(case,obj,clients,proservices,reimburservice, file_name)
+    return redirect('invoices')
+
+def balance_sheet(request, ):
+    invoice = Invoice.objects.all()
+    data = []
+    total_price =[x.final_total for x in invoice]
+    price = 0
+    for x in total_price:
+        price += x
+
+    return render(request,'main/setting/balance_sheet.html', {
+                                                              "invoice": invoice,
+                                                              'total_price': price})
+
+
+def sending_email(request, pk):
+    regards = """Regards,\nAlice Lee \nLEE CHEW & CO \nADVOCATES & SOLICITORS \n李与邱律师楼"""
+    invoices = Invoice.objects.all()
+    obj = Invoice.objects.get(pk=pk)
+    reimburservice = obj.reimburservice_set.all()
+    proservices = obj.profservice_set.all()
+    case = Case.objects.get(pk=obj.case_id)
+    clients = ClientRecord.objects.get(pk= case.clients_id)
+    context = {'obj' : obj,
+               'articles': reimburservice,
+               'case' : case,
+               'clients' : clients,
+               'proservices' : proservices,
+               'invoices' : invoices
+               }
+    file_name = clients.full_name
+    email = clients.email
+    test_email = ['kimwang6957@gmail.com']
+    email_message = f'Dear {file_name},\n\nThe invoice is in attachment. Please contact to 012-xxxx for futher information.'
+    # Create the PDF Invocie
+    create_pdf_n_save_it(case,obj,clients,proservices,reimburservice, file_name)
+    file_path = f"{settings.BASE_DIR}/{file_name}_invoice.pdf"
+
+    
+    send_email_with_attachment(
+        "Quotation and Email",
+        email_message + '\n\n\n' + regards,
+        recipient_list=test_email,
+        file_path=file_path
+    )
+    # Delete the temporary pdf File
+    ####
+
+    return render(request, "main/invoice/pdf_view.html", context)
+
+
+#######################
+# Account Information #
+#######################
+def view_accounts(request):
+    context = {}
+    invoices = Invoice.objects.all()
+    for brand in Invoice.objects.all():
+        if brand.case == None:
+            invoice_to_delete = Invoice.objects.get(pk = brand.pk)
+            invoice_to_delete.delete()
+    context['invoices'] = invoices
+    return render(request,"main/account/account_list.html", context)
+
+from django.http import HttpResponseNotFound  # Import HttpResponseNotFound
+
+def edit_account_transaction(request, slug):
+    context = {}
+    
+    if request.user.is_authenticated:
+        try:
+            invoice = Invoice.objects.get(slug=slug)
+            context['invoice'] = invoice
+            pass
+        except:
+            messages.error(request, 'Something went wrong')
+            return redirect('accounts')
+
+        if request.method == 'GET':
+            context['transaction_form'] = TransactionForm()  # For creating a new transaction
+            return render(request, "main/account/edit_account_transaction.html", context)
+
+        if request.method == 'POST':
+            transaction_form = TransactionForm(request.POST)
+            if transaction_form.is_valid():
+                trans = transaction_form.save(commit=False)
+                get_trans_type = transaction_form.cleaned_data['transaction_type']
+                # Update the transaction's balance based on the transaction type
+                if get_trans_type.lower() == 'credit':
+                    invoice.final_total_transaction -= transaction_form.cleaned_data['transaction_price']
+                else:
+                    invoice.final_total_transaction += transaction_form.cleaned_data['transaction_price']
+                trans.balance = invoice.final_total_transaction
+
+                trans.invoice = invoice  # Associating the transaction with the invoice
+
+                invoice.save()
+                trans.save()
+ 
+                # Redirect or perform any other necessary actions
+                return redirect('edit_account_transaction', slug=slug)
+            else:
+                return render(request, "main/account/edit_account_transaction.html", context)
+    return render(request, "main/account/edit_account_transaction.html", context)
