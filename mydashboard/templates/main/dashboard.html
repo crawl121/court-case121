@@ -1,0 +1,181 @@
+{% extends "navigation/base.html" %} {% block content %}
+<style>
+
+</style>
+<!-- Sale & Revenue Start -->
+<div class="container-fluid pt-4 px-4">
+    <div class="row g-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                <i class="fa fa-chart-line fa-3x text-primary"></i>
+                <div class="ms-3">
+                    <p class="mb-2">Total Case</p>
+                    <h6 class="mb-0">{{case_information}}</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                <i class="fa fa-chart-bar fa-3x text-primary"></i>
+                <div class="ms-3">
+                    <p class="mb-2">Total Client</p>
+                    <h6 class="mb-0">{{client_information}}</h6>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="bg-light rounded d-flex align-items-center justify-content-between p-4">
+                <i class="fa fa-chart-area fa-3x text-primary"></i>
+                <div class="ms-3">
+                    <p class="mb-2">Total Invoice</p>
+                    <h6 class="mb-0">{{invoice_information}}</h6>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Sale & Revenue End -->
+
+<!-- <div id="themap"></div> -->
+<!-- Sales Chart Start -->
+<div class="container-fluid pt-4 px-4">
+    <div class="row g-2">
+        <div class="col-md-6 col-md-6 col-xl-6">
+            <div class="bg-light text-center rounded p-4">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h6 class="mb-0">Client Location</h6>
+                </div>
+                {{map1|safe}}
+                <!-- <canvas id="worldwide-sales"></canvas> -->
+            </div>
+        </div>
+        <div class="col-md-6 col-md-6 col-xl-6">
+            <div class="bg-light text-center rounded p-4">
+                <div class="d-flex align-items-center justify-content-between mb-4 canvas">
+                    <h6 class="mb-0">Current Case Type</h6>
+                </div>
+                <canvas id="caseTypeChart" width="330px" height="300px"></canvas>
+                <!-- <canvas id="worldwide-sales"></canvas> -->
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Sales Chart End -->
+
+
+<!-- Volume Today -->
+<div class="container-fluid pt-4 px-4">
+    <div class="bg-light text-center rounded p-4">
+        <h2>Volume Today</h2>
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <canvas id="myChart" width="500" height="500"></canvas>
+        </div>
+
+    </div>
+</div>
+<!-- Volume Today End -->
+
+
+<!-- Widgets Start -->
+<div class="container-fluid pt-4 px-4">
+    <div class="row g-4">
+        <div class="col-sm-12 col-md-6 col-xl-4">
+            <div class="h-100 bg-light rounded p-4">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h6 class="mb-0">Calender</h6>
+                    <a href="">Show All</a>
+                </div>
+                <div id="calender"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Widgets End -->
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // jquery function
+    $(document).ready(function() {
+        data = JSON.parse("{{data_urgent|safe }}")
+        label = JSON.parse('{{label_urgent|safe}}')
+        var ctx = document.getElementById('myChart').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: label, //loop through queryset, 
+                datasets: [{
+                    label: 'Volumn Today',
+                    data: data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)',
+                        'rgba(255, 159, 64, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: false, // Make the chart responsive to the canvas size
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+        var data2 = JSON.parse("{{caseType_data|safe}}");
+        var label2 = JSON.parse('{{caseType_label|safe}}');
+
+
+        var ctx2 = document.getElementById('caseTypeChart').getContext('2d');
+
+
+
+        var myChart2 = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: label2, //loop through queryset, 
+                datasets: [{
+                    label: 'Case Type',
+                    data: data2,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: false, // Make the chart responsive to the canvas size
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+
+    });
+</script>
+
+
+
+{%endblock%}
