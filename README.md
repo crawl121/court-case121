@@ -1,6 +1,6 @@
 # LockBit - Legal Case Manager
 
-It is a Lega court case management website created using Django. It is cteated to reduce the work of advocates.
+It is a Lega court case management website created using Django. It is created to reduce the work of advocates.
 
 Django versions:
 
