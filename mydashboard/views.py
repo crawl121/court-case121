@@ -10,8 +10,8 @@ from collections import Counter
 import json
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from django.core.mail import send_mail
-from django.conf import settings
+
+from .utils import *
 
 
 def login_user(request):
@@ -744,6 +744,11 @@ def PDFInvoiceView(request, pk):
 
 #Creating a class based view
 
+from django.http import HttpResponse
+from django.views.generic import View
+
+from .utils import render_to_pdf #created in step 4
+
 def generate_pdf_invoice(request, pk):
     print("SLUG:::: ",pk)
     obj = Invoice.objects.get(pk=pk)
@@ -757,9 +762,31 @@ def generate_pdf_invoice(request, pk):
                'clients' : clients,
                'proservices' : proservices
                }
-    file_name = clients.full_name
-    create_pdf_n_save_it(case,obj,clients,proservices,reimburservice, file_name)
-    return redirect('invoices')
+    # file_name = clients.full_name
+    # create_pdf_n_save_it(case,obj,clients,proservices,reimburservice, file_name)
+    # return redirect('invoices')
+    pdf = render_to_pdf('main/invoice/pdf_template.html', context)
+    return HttpResponse(pdf, content_type='application/pdf')
+    
+
+
+
+# class GeneratePdf(View):
+#     def get(self, request, *args, **kwargs):
+#         obj = Invoice.objects.get(pk=pk)
+#         reimburservice = obj.reimburservice_set.all()
+#         proservices = obj.profservice_set.all()
+#         case = Case.objects.get(pk=obj.case_id)
+#         clients = ClientRecord.objects.get(pk= case.clients_id)
+#         context = {'obj' : obj,
+#                     'articles': reimburservice,
+#                     'case' : case,
+#                     'clients' : clients,
+#                     'proservices' : proservices
+#                     }
+#         pdf = render_to_pdf('pdf/invoice.html', context)
+#         return HttpResponse(pdf, content_type='application/pdf')
+
 
 def balance_sheet(request, ):
     invoice = Invoice.objects.all()
@@ -773,41 +800,6 @@ def balance_sheet(request, ):
                                                               "invoice": invoice,
                                                               'total_price': price})
 
-
-def sending_email(request, pk):
-    regards = """Regards,\nAlice Lee \nLEE CHEW & CO \nADVOCATES & SOLICITORS \n李与邱律师楼"""
-    invoices = Invoice.objects.all()
-    obj = Invoice.objects.get(pk=pk)
-    reimburservice = obj.reimburservice_set.all()
-    proservices = obj.profservice_set.all()
-    case = Case.objects.get(pk=obj.case_id)
-    clients = ClientRecord.objects.get(pk= case.clients_id)
-    context = {'obj' : obj,
-               'articles': reimburservice,
-               'case' : case,
-               'clients' : clients,
-               'proservices' : proservices,
-               'invoices' : invoices
-               }
-    file_name = clients.full_name
-    email = clients.email
-    test_email = ['kimwang6957@gmail.com']
-    email_message = f'Dear {file_name},\n\nThe invoice is in attachment. Please contact to 012-xxxx for futher information.'
-    # Create the PDF Invocie
-    create_pdf_n_save_it(case,obj,clients,proservices,reimburservice, file_name)
-    file_path = f"{settings.BASE_DIR}/{file_name}_invoice.pdf"
-
-    
-    send_email_with_attachment(
-        "Quotation and Email",
-        email_message + '\n\n\n' + regards,
-        recipient_list=test_email,
-        file_path=file_path
-    )
-    # Delete the temporary pdf File
-    ####
-
-    return render(request, "main/invoice/pdf_view.html", context)
 
 
 #######################

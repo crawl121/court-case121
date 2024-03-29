@@ -54,7 +54,6 @@ urlpatterns = [
     path('invoices/create-build/<slug:slug>',views.createBuildInvoice, name='create-build-invoice'),
     path('invoices/update-build/<slug:slug>',views.updateBuildInvoice, name='update-build-invoice'),
     # path('pdf/<int:pk>', views.generate_pdf_invoice, name="generate-pdf"),
-    path('sending_email/<int:pk>', views.sending_email, name="sending_email"),
     path('invoices/pdf-build/<int:pk>',views.generate_pdf_invoice, name='generate_pdf_invoice'),
 
     #Delete an invoice
