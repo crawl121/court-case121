@@ -29,7 +29,7 @@ Install my project using commands given below :
 
 - Activate Virtual Environment
 ```bash
-  $ pip install virtualenv
+  $ virtualenv\scripts\activate
 ```
 
 - Install requirement.txt
