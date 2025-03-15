@@ -13,7 +13,7 @@ Install my project using commands given below :
 - Clone project
 
 ```bash
-Git clone https://github.com/Anmol-1408/court-case-management-system.git
+git clone https://github.com/crawl121/court-case121.git
 ```
 
 - Install Virtual Environments
