@@ -13,33 +13,33 @@ Install my project using commands given below :
 - Clone project
 
 ```bash
-  $ Git clone https://github.com/Anmol-1408/court-case-management-system.git
+Git clone https://github.com/Anmol-1408/court-case-management-system.git
 ```
 
 - Install Virtual Environments
 
 ```bash
-  $ pip install virtualenv
+pip install virtualenv
 ```
 
 - Create a new Virtual Environment
 ```bash
-  $ virtualenv virtualenv_name
+virtualenv virtualenv_name
 ```
 
 - Activate Virtual Environment
 ```bash
-  $ virtualenv_name\scripts\activate
+virtualenv_name\scripts\activate
 ```
 
 - Install requirement.txt
 ```bash
-  $ pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 - Run project
 ```bash
-  $ python manage.py runserver
+python manage.py runserver
 ```
 
 
