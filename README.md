@@ -24,12 +24,12 @@ pip install virtualenv
 
 - Create a new Virtual Environment
 ```bash
-virtualenv virtualenv_name
+python3 -m venv.venv
 ```
 
 - Activate Virtual Environment
 ```bash
-virtualenv_name\scripts\activate
+.venv\Scripts\activate
 ```
 
 - Install requirement.txt
