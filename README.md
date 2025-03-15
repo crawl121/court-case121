@@ -52,7 +52,3 @@ python manage.py runserver
 - Add case type
 - Invoice management
 
-
-## Feedback
-
-If you have any feedback, please reach out to us at palanmol592@gmail.com
