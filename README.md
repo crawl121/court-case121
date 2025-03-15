@@ -16,18 +16,18 @@ Install my project using commands given below :
 git clone https://github.com/crawl121/court-case121.git
 ```
 
-- Install Virtual Environments
+- Install Virtual Environments 
 
 ```bash
 pip install virtualenv
 ```
 
-- Create a new Virtual Environment
+- Create a new Virtual Environment for windows
 ```bash
 python3 -m venv.venv
 ```
 
-- Activate Virtual Environment
+- Activate Virtual Environment for windows
 ```bash
 .venv\Scripts\activate
 ```
